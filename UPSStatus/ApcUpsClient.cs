@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace UPSStatus
@@ -18,9 +19,33 @@ namespace UPSStatus
 
     public static class ApcUpsClient
     {
-        public static Task<ApcUpsStatus> GetStatusAsync(string host, int port = 3551)
+        private const int RetryDelaySeconds = 10;
+
+        public static Task<ApcUpsStatus> GetStatusAsync(string host, int port,
+            Action<int>? onRetry = null, CancellationToken cancellationToken = default)
         {
-            return Task.Run(() => GetStatus(host, port));
+            return Task.Run(async () =>
+            {
+                int attempt = 0;
+                while (true)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        return GetStatus(host, port);
+                    }
+                    catch (SocketException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        attempt++;
+                        for (int i = RetryDelaySeconds; i > 0; i--)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            onRetry?.Invoke(i);
+                            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                        }
+                    }
+                }
+            }, cancellationToken);
         }
 
         private static ApcUpsStatus GetStatus(string host, int port)

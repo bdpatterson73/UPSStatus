@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using WinForms = System.Windows.Forms;
@@ -15,6 +16,7 @@ namespace UPSStatus
 
         private readonly WinForms.NotifyIcon _notifyIcon;
         private bool _closeFromTray;
+        private readonly CancellationTokenSource _cts = new();
 
         public MainWindow()
         {
@@ -91,6 +93,8 @@ namespace UPSStatus
                 return;
             }
 
+            _cts.Cancel();
+            _cts.Dispose();
             _timer.Stop();
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();
@@ -127,9 +131,16 @@ namespace UPSStatus
 
             try
             {
-                ApcUpsStatus status = await ApcUpsClient.GetStatusAsync(host, port);
+                ApcUpsStatus status = await ApcUpsClient.GetStatusAsync(host, port,
+                    onRetry: secondsLeft => Dispatcher.Invoke(() =>
+                        StatusBarText.Text = $"Connection refused — retrying in {secondsLeft}s…"),
+                    cancellationToken: _cts.Token);
                 ApplyStatus(status);
                 StatusBarText.Text = $"Last updated: {DateTime.Now:HH:mm:ss}";
+            }
+            catch (OperationCanceledException)
+            {
+                // App is closing — do nothing
             }
             catch (Exception ex)
             {
@@ -169,6 +180,19 @@ namespace UPSStatus
 
             VoltageValue.Text = $"{status.LineVoltage:0.#} V";
 
+            SelfTestValue.Text = status.RawValues.TryGetValue("SELFTEST", out string? selftest)
+                ? selftest : "N/A";
+            SelfTestValue.Foreground = (SelfTestValue.Text == "OK")
+                ? System.Windows.Media.Brushes.DarkGreen
+                : (SelfTestValue.Text == "N/A" ? System.Windows.Media.Brushes.Gray
+                : System.Windows.Media.Brushes.OrangeRed);
+
+            NumXfersValue.Text = status.RawValues.TryGetValue("NUMXFERS", out string? numx)
+                ? numx : "N/A";
+
+            CumOnBattValue.Text = status.RawValues.TryGetValue("CUMONBATT", out string? cumob)
+                ? cumob : "N/A";
+
             // Keep tray tooltip current
             _notifyIcon.Text = onBattery
                 ? $"⚠ UPS ON BATTERY — {status.BatteryCharge:0.#}% / {status.TimeLeftMinutes:0.#} min left"
@@ -185,6 +209,10 @@ namespace UPSStatus
             LoadValue.Text = "—";
             LoadBar.Value = 0;
             VoltageValue.Text = "—";
+            SelfTestValue.Text = "—";
+            SelfTestValue.Foreground = System.Windows.Media.Brushes.Gray;
+            NumXfersValue.Text = "—";
+            CumOnBattValue.Text = "—";
         }
 
         private void UpdateNextRefreshText()

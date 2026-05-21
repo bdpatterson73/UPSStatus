@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UPSStatus"
         mc:Ignorable="d"
-        Title="UPS Status Monitor" Height="420" Width="480"
+        Title="UPS Status Monitor" Height="500" Width="480"
         ResizeMode="CanMinimize"
         StateChanged="Window_StateChanged"
         Closing="Window_Closing">
@@ -140,6 +140,49 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Style="{StaticResource LabelStyle}" Text="Line Voltage"/>
                         <TextBlock Grid.Column="1" x:Name="VoltageValue" Style="{StaticResource ValueStyle}" Text="—"/>
+                    </Grid>
+                </Border>
+
+                <!-- Statistics (compact 3-up row) -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="1"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Last self-test -->
+                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                            <TextBlock Text="🔍 Self-Test" Style="{StaticResource LabelStyle}"
+                                       HorizontalAlignment="Center" FontSize="11"/>
+                            <TextBlock x:Name="SelfTestValue" Text="—" FontSize="16" FontWeight="Bold"
+                                       Foreground="#1a1a1a" HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Divider -->
+                        <Rectangle Grid.Column="1" Fill="#DDDDDD" Width="1" Margin="0,4"/>
+
+                        <!-- Number of transfers -->
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                            <TextBlock Text="⚡ Transfers" Style="{StaticResource LabelStyle}"
+                                       HorizontalAlignment="Center" FontSize="11"/>
+                            <TextBlock x:Name="NumXfersValue" Text="—" FontSize="16" FontWeight="Bold"
+                                       Foreground="#1a1a1a" HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Divider -->
+                        <Rectangle Grid.Column="3" Fill="#DDDDDD" Width="1" Margin="0,4"/>
+
+                        <!-- Cumulative time on battery -->
+                        <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                            <TextBlock Text="🔋 On Battery" Style="{StaticResource LabelStyle}"
+                                       HorizontalAlignment="Center" FontSize="11"/>
+                            <TextBlock x:Name="CumOnBattValue" Text="—" FontSize="16" FontWeight="Bold"
+                                       Foreground="#1a1a1a" HorizontalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
